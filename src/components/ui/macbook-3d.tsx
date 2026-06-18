@@ -15,11 +15,11 @@ import * as THREE from "three";
 function MacBook() {
   const groupRef = useRef<THREE.Group>(null);
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     if (!groupRef.current) return;
-    groupRef.current.rotation.y += delta * 0.38;
-    groupRef.current.position.y =
-      Math.sin(state.clock.elapsedTime * 0.75) * 0.07;
+    // tempo absoluto = rotação nunca para nem fica presa em delta zero
+    groupRef.current.rotation.y = state.clock.elapsedTime * 0.55;
+    groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.8) * 0.09;
   });
 
   return (
@@ -138,11 +138,34 @@ export default function MacBook3D() {
 
   if (!mounted) return null;
 
+  // Skip Three.js on mobile — too GPU-intensive for phones
+  if (window.matchMedia("(max-width: 768px)").matches) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div
+          className="rounded-2xl border"
+          style={{
+            width: "220px",
+            height: "150px",
+            background: "linear-gradient(135deg, #17172a, #0d0d1a)",
+            borderColor: "rgba(168,85,247,0.3)",
+            boxShadow: "0 0 40px rgba(124,58,237,0.25)",
+          }}
+        >
+          <div className="w-full h-full rounded-2xl flex items-center justify-center"
+            style={{ background: "radial-gradient(ellipse at center, rgba(124,58,237,0.2) 0%, transparent 70%)" }}>
+            <div className="w-3 h-3 rounded-full" style={{ background: "#a855f7", boxShadow: "0 0 12px #a855f7" }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Canvas
       shadows
       camera={{ position: [0, 2.2, 6.2], fov: 38 }}
-      gl={{ alpha: true, antialias: true }}
+      gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
       style={{ background: "transparent", width: "100%", height: "100%" }}
     >
       {/* Luz ambiente suave */}
