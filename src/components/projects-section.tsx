@@ -28,7 +28,7 @@ export default function ProjectsSection() {
           </div>
 
           {/* Headline */}
-          <h2 className="text-5xl sm:text-6xl md:text-7xl font-black leading-none tracking-tight">
+          <h2 className="text-5xl sm:text-6xl md:text-7xl font-black leading-tight tracking-tight pb-2">
             <span
               className="block"
               style={{

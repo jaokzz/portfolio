@@ -20,28 +20,42 @@ export function GooeyText({
 }: GooeyTextProps) {
   const text1Ref = React.useRef<HTMLSpanElement>(null);
   const text2Ref = React.useRef<HTMLSpanElement>(null);
+  const isMobileRef = React.useRef(false);
 
   React.useEffect(() => {
+    isMobileRef.current = window.matchMedia("(max-width: 768px)").matches;
+
     let textIndex = texts.length - 1;
     let time = new Date();
     let morph = 0;
     let cooldown = cooldownTime;
     let frameId: number;
 
-    const setMorph = (fraction: number) => {
-      if (text1Ref.current && text2Ref.current) {
-        // Cap blur at 40px — 100px was very expensive on mobile GPUs
-        text2Ref.current.style.filter = `blur(${Math.min(8 / fraction - 8, 40)}px)`;
-        text2Ref.current.style.opacity = `${Math.pow(fraction, 0.4) * 100}%`;
-        const f2 = 1 - fraction;
-        text1Ref.current.style.filter = `blur(${Math.min(8 / f2 - 8, 40)}px)`;
-        text1Ref.current.style.opacity = `${Math.pow(f2, 0.4) * 100}%`;
-      }
+    const setMorphDesktop = (fraction: number) => {
+      if (!text1Ref.current || !text2Ref.current) return;
+      text2Ref.current.style.filter = `blur(${Math.min(8 / fraction - 8, 40)}px)`;
+      text2Ref.current.style.opacity = `${Math.pow(fraction, 0.4) * 100}%`;
+      const f2 = 1 - fraction;
+      text1Ref.current.style.filter = `blur(${Math.min(8 / f2 - 8, 40)}px)`;
+      text1Ref.current.style.opacity = `${Math.pow(f2, 0.4) * 100}%`;
     };
+
+    // Mobile: simple crossfade, no blur — blur filter kills mobile GPU
+    const setMorphMobile = (fraction: number) => {
+      if (!text1Ref.current || !text2Ref.current) return;
+      text2Ref.current.style.opacity = `${fraction * 100}%`;
+      text1Ref.current.style.opacity = `${(1 - fraction) * 100}%`;
+    };
+
+    const setMorph = isMobileRef.current ? setMorphMobile : setMorphDesktop;
 
     const doCooldown = () => {
       morph = 0;
-      if (text1Ref.current && text2Ref.current) {
+      if (!text1Ref.current || !text2Ref.current) return;
+      if (isMobileRef.current) {
+        text2Ref.current.style.opacity = "100%";
+        text1Ref.current.style.opacity = "0%";
+      } else {
         text2Ref.current.style.filter = "";
         text2Ref.current.style.opacity = "100%";
         text1Ref.current.style.filter = "";
@@ -88,6 +102,7 @@ export function GooeyText({
 
   return (
     <div className={cn("relative", className)}>
+      {/* SVG filter only rendered on desktop — not needed for mobile fade */}
       <svg className="absolute h-0 w-0" aria-hidden="true" focusable="false">
         <defs>
           <filter id="threshold">

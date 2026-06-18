@@ -62,6 +62,8 @@ export function SlideButton({
   const [isDragging, setIsDragging] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [shaking, setShaking] = useState(false)
+  const [showError, setShowError] = useState(false)
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragHandleRef = useRef<HTMLDivElement | null>(null)
 
   const dragX = useMotionValue(0)
@@ -71,9 +73,19 @@ export function SlideButton({
 
   const triggerShake = useCallback(() => {
     dragX.set(0)
+    // Shake animation: 450ms
     setShaking(true)
     setTimeout(() => setShaking(false), 500)
+    // Error message: 3500ms
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
+    setShowError(true)
+    errorTimerRef.current = setTimeout(() => setShowError(false), 3500)
   }, [dragX])
+
+  // Cleanup error timer on unmount
+  React.useEffect(() => {
+    return () => { if (errorTimerRef.current) clearTimeout(errorTimerRef.current) }
+  }, [])
 
   const handleDragStart = useCallback(() => {
     if (completed) return
@@ -112,8 +124,6 @@ export function SlideButton({
     }
   }, [status, completed, dragX])
 
-  const isError = shaking
-
   return (
     <div className={cn("space-y-2", className)}>
       <motion.div
@@ -127,9 +137,9 @@ export function SlideButton({
         transition={shaking ? undefined : SPRING}
         className="relative flex h-12 items-center justify-center rounded-xl overflow-hidden mx-auto"
         style={{
-          background: isError ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.03)",
-          border: `1px solid ${isError ? "rgba(239,68,68,0.45)" : "rgba(168,85,247,0.22)"}`,
-          transition: "background 0.2s, border-color 0.2s",
+          background: showError ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.03)",
+          border: `1px solid ${showError ? "rgba(239,68,68,0.45)" : "rgba(168,85,247,0.22)"}`,
+          transition: "background 0.3s, border-color 0.3s",
         }}
       >
         {/* Fill que acompanha o drag */}
@@ -138,7 +148,7 @@ export function SlideButton({
             className="absolute inset-y-0 left-0 z-0 rounded-xl"
             style={{
               width: fillWidth,
-              background: isError
+              background: showError
                 ? "linear-gradient(135deg,#dc2626,#ef4444)"
                 : "linear-gradient(135deg,#7c3aed,#a855f7)",
             }}
@@ -150,14 +160,14 @@ export function SlideButton({
           <span
             className="text-xs sm:text-sm font-semibold select-none pointer-events-none z-10 transition-colors duration-200"
             style={{
-              color: isError
+              color: showError
                 ? "rgba(252,165,165,0.7)"
                 : disabled
                 ? "rgba(255,255,255,0.22)"
                 : "rgba(196,132,252,0.55)",
             }}
           >
-            {isError ? "Corrija os campos ↑" : "Deslize para enviar →"}
+            {showError ? "Corrija os campos ↑" : "Deslize para enviar →"}
           </span>
         )}
 
@@ -184,12 +194,12 @@ export function SlideButton({
                   isDragging && !disabled && "scale-105"
                 )}
                 style={{
-                  background: isError
+                  background: shaking
                     ? "linear-gradient(135deg,#dc2626,#ef4444)"
                     : disabled
                     ? "rgba(100,60,160,0.35)"
                     : "linear-gradient(135deg,#7c3aed,#a855f7)",
-                  boxShadow: isError
+                  boxShadow: shaking
                     ? "0 0 18px rgba(239,68,68,0.5)"
                     : disabled
                     ? "none"
@@ -197,7 +207,7 @@ export function SlideButton({
                   cursor: disabled ? "not-allowed" : "grab",
                 }}
               >
-                {isError ? (
+                {shaking ? (
                   <AlertTriangle className="size-5" />
                 ) : (
                   <SendHorizontal className="size-5" />
@@ -228,9 +238,9 @@ export function SlideButton({
         </AnimatePresence>
       </motion.div>
 
-      {/* Mensagem de validação inline — aparece só após shake */}
+      {/* Mensagem de validação — dura 3.5s após o shake */}
       <AnimatePresence>
-        {shaking && (
+        {showError && (
           <motion.p
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
