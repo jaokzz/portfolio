@@ -30,10 +30,11 @@ export function GooeyText({
 
     const setMorph = (fraction: number) => {
       if (text1Ref.current && text2Ref.current) {
-        text2Ref.current.style.filter = `blur(${Math.min(8 / fraction - 8, 100)}px)`;
+        // Cap blur at 40px — 100px was very expensive on mobile GPUs
+        text2Ref.current.style.filter = `blur(${Math.min(8 / fraction - 8, 40)}px)`;
         text2Ref.current.style.opacity = `${Math.pow(fraction, 0.4) * 100}%`;
         const f2 = 1 - fraction;
-        text1Ref.current.style.filter = `blur(${Math.min(8 / f2 - 8, 100)}px)`;
+        text1Ref.current.style.filter = `blur(${Math.min(8 / f2 - 8, 40)}px)`;
         text1Ref.current.style.opacity = `${Math.pow(f2, 0.4) * 100}%`;
       }
     };

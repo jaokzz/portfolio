@@ -2,49 +2,59 @@
 
 import { useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
-import { Mail, MessageSquare, Send, MapPin, AtSign, GitFork, CheckCircle2 } from "lucide-react";
+import { Mail, MessageSquare, MapPin, AtSign, GitFork } from "lucide-react";
+import AnimatedShaderBackground from "@/components/ui/animated-shader-background";
+import { SlideButton } from "@/components/ui/slide-button";
 
-function GlowInput({ label, type = "text", value, onChange, placeholder, required, rows }: {
+function GlowInput({ label, type = "text", value, onChange, placeholder, rows, isInvalid }: {
   label: string; type?: string; value: string;
   onChange: (v: string) => void; placeholder: string;
-  required?: boolean; rows?: number;
+  rows?: number; isInvalid?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  const showError = touched && !focused && isInvalid && value.length > 0;
+
   const baseStyle = {
-    background: focused ? "rgba(168,85,247,0.06)" : "rgba(255,255,255,0.02)",
-    border: `1px solid ${focused ? "rgba(168,85,247,0.4)" : "rgba(255,255,255,0.06)"}`,
-    boxShadow: focused ? "0 0 20px rgba(168,85,247,0.08), inset 0 0 10px rgba(168,85,247,0.03)" : "none",
-    transition: "all 0.3s ease",
+    background: focused
+      ? "rgba(168,85,247,0.06)"
+      : showError
+      ? "rgba(239,68,68,0.04)"
+      : "rgba(255,255,255,0.02)",
+    border: `1px solid ${
+      focused
+        ? "rgba(168,85,247,0.4)"
+        : showError
+        ? "rgba(239,68,68,0.4)"
+        : "rgba(255,255,255,0.06)"
+    }`,
+    boxShadow: focused
+      ? "0 0 20px rgba(168,85,247,0.08), inset 0 0 10px rgba(168,85,247,0.03)"
+      : showError
+      ? "0 0 12px rgba(239,68,68,0.06)"
+      : "none",
+    transition: "all 0.25s ease",
   };
   const cls = "w-full px-4 py-3 rounded-xl text-sm text-white placeholder-zinc-600 outline-none resize-none ";
+
+  const sharedProps = {
+    value,
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value),
+    placeholder,
+    onFocus: () => setFocused(true),
+    onBlur: () => { setFocused(false); setTouched(true); },
+    className: cls,
+    style: baseStyle,
+  };
 
   return (
     <div>
       <label className="block text-xs font-medium text-zinc-400 mb-2 tracking-wide uppercase">{label}</label>
       {rows ? (
-        <textarea
-          rows={rows}
-          required={required}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          className={cls}
-          style={baseStyle}
-        />
+        <textarea rows={rows} {...sharedProps} />
       ) : (
-        <input
-          type={type}
-          required={required}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          className={cls}
-          style={baseStyle}
-        />
+        <input type={type} {...sharedProps} />
       )}
     </div>
   );
@@ -53,11 +63,25 @@ function GlowInput({ label, type = "text", value, onChange, placeholder, require
 export default function ContactSection() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
-  const [sent, setSent] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [form, setForm] = useState({ name: "", email: "", message: "" });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
+  const isNameValid = form.name.trim().split(/\s+/).filter(Boolean).length >= 2;
+  const isMessageValid = form.message.trim().length >= 15;
+  const isFormValid = isNameValid && isEmailValid && isMessageValid;
+
+  const validationMessage = !isNameValid
+    ? "Nome precisa ter pelo menos nome e sobrenome"
+    : !isEmailValid
+    ? "E-mail inválido"
+    : !isMessageValid
+    ? "Mensagem muito curta (mínimo 15 caracteres)"
+    : "";
+
+  const handleSlideSubmit = async () => {
+    if (!isFormValid || submitStatus !== "idle") return;
+    setSubmitStatus("loading");
     try {
       const res = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
@@ -72,12 +96,18 @@ export default function ContactSection() {
       });
       const data = await res.json();
       if (data.success) {
-        setSent(true);
-        setTimeout(() => setSent(false), 4000);
-        setForm({ name: "", email: "", message: "" });
+        setSubmitStatus("success");
+        setTimeout(() => {
+          setForm({ name: "", email: "", message: "" });
+          setSubmitStatus("idle");
+        }, 3000);
+      } else {
+        setSubmitStatus("error");
+        setTimeout(() => setSubmitStatus("idle"), 3000);
       }
     } catch {
-      // silently ignore network errors — user can retry
+      setSubmitStatus("error");
+      setTimeout(() => setSubmitStatus("idle"), 3000);
     }
   };
 
@@ -95,8 +125,11 @@ export default function ContactSection() {
       style={{ background: "linear-gradient(to bottom, #07070f, #0a0a16)" }}
       ref={ref}
     >
-      {/* bg glows */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {/* Aurora shader background — desktop only */}
+      <AnimatedShaderBackground />
+
+      {/* Fallback static glow for mobile */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden md:hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full"
           style={{ background: "radial-gradient(ellipse, rgba(168,85,247,0.06) 0%, transparent 70%)" }} />
       </div>
@@ -192,8 +225,7 @@ export default function ContactSection() {
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.1 }}
           >
-            <form
-              onSubmit={handleSubmit}
+            <div
               className="p-5 sm:p-8 rounded-2xl border space-y-5"
               style={{
                 background: "#0d0d1a",
@@ -201,28 +233,37 @@ export default function ContactSection() {
                 boxShadow: "0 0 40px rgba(168,85,247,0.04)",
               }}
             >
-              <GlowInput label="Nome" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="Seu nome" required />
-              <GlowInput label="E-mail" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} placeholder="seu@email.com" required />
-              <GlowInput label="Mensagem" value={form.message} onChange={(v) => setForm({ ...form, message: v })} placeholder="Me conta sobre seu projeto..." required rows={5} />
+              <GlowInput
+                label="Nome"
+                value={form.name}
+                onChange={(v) => setForm({ ...form, name: v })}
+                placeholder="Nome e Sobrenome"
+                isInvalid={!isNameValid}
+              />
+              <GlowInput
+                label="E-mail"
+                type="email"
+                value={form.email}
+                onChange={(v) => setForm({ ...form, email: v })}
+                placeholder="seu@email.com"
+                isInvalid={!isEmailValid}
+              />
+              <GlowInput
+                label="Mensagem"
+                value={form.message}
+                onChange={(v) => setForm({ ...form, message: v })}
+                placeholder="Me conta sobre seu projeto... (mín. 15 caracteres)"
+                rows={5}
+                isInvalid={!isMessageValid}
+              />
 
-              <motion.button
-                type="submit"
-                whileHover={{ scale: 1.02, boxShadow: "0 0 40px rgba(168,85,247,0.5)" }}
-                whileTap={{ scale: 0.97 }}
-                className="w-full py-4 rounded-xl text-white font-bold text-sm relative overflow-hidden  flex items-center justify-center gap-2"
-                style={{
-                  background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-                  boxShadow: "0 0 20px rgba(168,85,247,0.3)",
-                }}
-              >
-                <span className="absolute inset-0 opacity-0 hover:opacity-100 bg-gradient-to-r from-transparent via-white/15 to-transparent transition-opacity duration-500 skew-x-12 translate-x-[-100%] hover:translate-x-[100%]" />
-                {sent ? (
-                  <><CheckCircle2 className="w-4 h-4 text-green-300" /> Mensagem enviada!</>
-                ) : (
-                  <><Send className="w-4 h-4" /> Enviar mensagem</>
-                )}
-              </motion.button>
-            </form>
+              <SlideButton
+                onSlideComplete={handleSlideSubmit}
+                status={submitStatus}
+                disabled={!isFormValid}
+                validationMessage={validationMessage}
+              />
+            </div>
           </motion.div>
         </div>
       </div>

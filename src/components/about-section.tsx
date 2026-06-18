@@ -66,6 +66,8 @@ export default function AboutSection() {
               <img
                 src="/img/joao-foto.jpeg"
                 alt="João Vitor"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0"

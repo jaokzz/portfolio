@@ -1,11 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import dynamic from "next/dynamic";
 import { motion, useInView } from "framer-motion";
 import { Zap, Shield, Rocket } from "lucide-react";
-
-const MacBook3D = dynamic(() => import("@/components/ui/macbook-3d"), { ssr: false });
 
 const features = [
   {
@@ -46,30 +43,46 @@ export default function SolutionsSection() {
             initial={{ opacity: 0, x: -60, scale: 0.92 }}
             animate={inView ? { opacity: 1, x: 0, scale: 1 } : {}}
             transition={{ duration: 1, ease: "easeOut" }}
-            className="relative flex-shrink-0 w-full lg:w-[480px] h-[400px]"
+            className="relative flex-shrink-0 w-full lg:w-[480px]"
           >
-            {/* Glow orbs de atmosfera — ficam visíveis através do canvas transparente */}
+            {/* Pulsing glow orb behind */}
             <motion.div
               className="absolute inset-0 rounded-3xl pointer-events-none"
               style={{
-                background: "radial-gradient(ellipse at 50% 60%, rgba(124,58,237,0.3) 0%, rgba(168,85,247,0.08) 50%, transparent 72%)",
+                background: "radial-gradient(ellipse at 50% 60%, rgba(124,58,237,0.35) 0%, rgba(168,85,247,0.1) 45%, transparent 70%)",
+                transform: "scale(1.2)",
               }}
-              animate={{ opacity: [0.6, 1, 0.6], scale: [1.05, 1.2, 1.05] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              animate={{ opacity: [0.6, 1, 0.6], scale: [1.1, 1.25, 1.1] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
             />
+            {/* Second spread glow */}
             <motion.div
               className="absolute inset-0 rounded-3xl pointer-events-none"
               style={{
-                background: "radial-gradient(ellipse at 50% 60%, rgba(196,132,252,0.1) 0%, transparent 65%)",
+                background: "radial-gradient(ellipse at 50% 60%, rgba(196,132,252,0.12) 0%, transparent 65%)",
+                transform: "scale(1.4)",
               }}
-              animate={{ opacity: [0.3, 0.8, 0.3] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+              animate={{ opacity: [0.4, 0.9, 0.4] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
             />
-
-            {/* Canvas 3D — fundo transparente, glow orbs aparecem por baixo */}
-            <div className="absolute inset-0">
-              <MacBook3D />
-            </div>
+            {/* Laptop with float + tilt + glow pulse */}
+            <motion.img
+              src="/img/macbook-hero.png"
+              alt="MacBook Pro com projeto em desenvolvimento"
+              className="relative w-full object-contain"
+              animate={{
+                y: [0, -40, -16, -40, 0],
+                rotate: [0, 2.5, 0, -2, 0],
+                filter: [
+                  "drop-shadow(0 8px 40px rgba(124,58,237,0.4)) drop-shadow(0 0 20px rgba(168,85,247,0.2))",
+                  "drop-shadow(0 20px 60px rgba(124,58,237,0.7)) drop-shadow(0 0 40px rgba(168,85,247,0.5))",
+                  "drop-shadow(0 12px 45px rgba(124,58,237,0.5)) drop-shadow(0 0 25px rgba(168,85,247,0.3))",
+                  "drop-shadow(0 20px 60px rgba(124,58,237,0.7)) drop-shadow(0 0 40px rgba(168,85,247,0.5))",
+                  "drop-shadow(0 8px 40px rgba(124,58,237,0.4)) drop-shadow(0 0 20px rgba(168,85,247,0.2))",
+                ],
+              }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            />
           </motion.div>
 
           {/* Text side */}

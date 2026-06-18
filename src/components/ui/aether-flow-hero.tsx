@@ -5,23 +5,27 @@ import { motion, useMotionValue, useSpring } from "framer-motion";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { GooeyText } from "./gooey-text-morphing";
 
-/* ── Particle canvas — autonomous + mouse-reactive ─── */
+/* ── Particle canvas — desktop only ────────────────── */
 function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Skip on mobile — too heavy for phones
+    if (window.matchMedia("(max-width: 768px)").matches) return;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     let raf: number;
+    let cw = 0, ch = 0; // cached dimensions
     const mouse = { x: -9999, y: -9999, radius: 160 };
 
     class Particle {
       x: number; y: number; ox: number; oy: number;
       vx: number; vy: number;
-      /* autonomous drift — each particle gets its own gentle sine-based path */
       phase: number; speed: number; amplitude: number;
       size: number; opacity: number; color: string;
       t = 0;
@@ -31,22 +35,18 @@ function ParticleCanvas() {
         this.oy = this.y = Math.random() * h;
         this.vx = 0; this.vy = 0;
         this.phase = Math.random() * Math.PI * 2;
-        this.speed = 0.004 + Math.random() * 0.006;   // how fast each particle drifts
-        this.amplitude = 30 + Math.random() * 50;      // drift radius
+        this.speed = 0.002 + Math.random() * 0.003;
+        this.amplitude = 30 + Math.random() * 50;
         this.size = Math.random() * 1.6 + 0.3;
         this.opacity = Math.random() * 0.5 + 0.1;
-        // All purple family
         const shades = ["168,85,247", "196,132,252", "139,92,246", "124,58,237"];
         this.color = shades[Math.floor(Math.random() * shades.length)];
       }
 
       update(w: number, h: number) {
         this.t += this.speed;
-        /* autonomous target: lissajous-like orbit around origin */
         const tx = this.ox + Math.sin(this.t + this.phase) * this.amplitude;
         const ty = this.oy + Math.cos(this.t * 1.3 + this.phase) * (this.amplitude * 0.6);
-
-        /* mouse repulsion */
         const dx = mouse.x - this.x, dy = mouse.y - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < mouse.radius && dist > 0) {
@@ -54,14 +54,10 @@ function ParticleCanvas() {
           this.vx -= (dx / dist) * force * 5;
           this.vy -= (dy / dist) * force * 5;
         }
-
-        /* spring toward autonomous target */
         this.vx += (tx - this.x) * 0.015;
         this.vy += (ty - this.y) * 0.015;
         this.vx *= 0.85; this.vy *= 0.85;
         this.x += this.vx; this.y += this.vy;
-
-        /* wrap around edges */
         if (this.x < -10) this.x = w + 10;
         if (this.x > w + 10) this.x = -10;
         if (this.y < -10) this.y = h + 10;
@@ -78,13 +74,15 @@ function ParticleCanvas() {
 
     let particles: Particle[] = [];
     const init = (w: number, h: number) => {
+      cw = w; ch = h;
       particles = [];
-      const n = Math.min(Math.floor((w * h) / 6000), 200);
+      // Cap at 120 particles even on large screens
+      const n = Math.min(Math.floor((w * h) / 8000), 120);
       for (let i = 0; i < n; i++) particles.push(new Particle(w, h));
     };
 
     const connect = (w: number, h: number) => {
-      const threshold = 120 * 120; // fixed 120px max connection distance
+      const threshold = 120 * 120;
       for (let a = 0; a < particles.length; a++) {
         for (let b = a + 1; b < particles.length; b++) {
           const dx = particles[a].x - particles[b].x;
@@ -108,23 +106,31 @@ function ParticleCanvas() {
     };
 
     const resize = () => {
-      canvas!.width = canvas!.offsetWidth;
-      canvas!.height = canvas!.offsetHeight;
-      init(canvas!.width, canvas!.height);
+      cw = canvas!.offsetWidth;
+      ch = canvas!.offsetHeight;
+      canvas!.width = cw;
+      canvas!.height = ch;
+      init(cw, ch);
     };
 
     const animate = () => {
       raf = requestAnimationFrame(animate);
-      const w = canvas!.width, h = canvas!.height;
-      ctx.clearRect(0, 0, w, h);
-      particles.forEach((p) => { p.update(w, h); p.draw(); });
-      connect(w, h);
+      ctx.clearRect(0, 0, cw, ch);
+      particles.forEach((p) => { p.update(cw, ch); p.draw(); });
+      connect(cw, ch);
     };
 
+    // RAF-throttled mouse — avoids running more than once per frame
+    let mouseScheduled = false;
     const onMove = (e: MouseEvent) => {
-      const r = canvas!.getBoundingClientRect();
-      mouse.x = e.clientX - r.left;
-      mouse.y = e.clientY - r.top;
+      if (mouseScheduled) return;
+      mouseScheduled = true;
+      requestAnimationFrame(() => {
+        const r = canvas!.getBoundingClientRect();
+        mouse.x = e.clientX - r.left;
+        mouse.y = e.clientY - r.top;
+        mouseScheduled = false;
+      });
     };
     const onLeave = () => { mouse.x = -9999; mouse.y = -9999; };
 
@@ -141,7 +147,8 @@ function ParticleCanvas() {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
+  // Hidden on mobile via CSS — canvas is never initialized there anyway
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full hidden md:block" />;
 }
 
 /* ── Magnetic button ────────────────────────────────── */
@@ -224,7 +231,7 @@ export default function AetherFlowHero() {
         style={{ background: "radial-gradient(ellipse, rgba(168,85,247,0.07) 0%, transparent 70%)" }}
       />
 
-      {/* Particle canvas — always animated */}
+      {/* Particle canvas — desktop only */}
       <div className="absolute inset-0 z-1">{mounted && <ParticleCanvas />}</div>
 
       {/* Content */}
@@ -265,7 +272,7 @@ export default function AetherFlowHero() {
         </motion.p>
 
         {/* CTAs */}
-        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-5">
+        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
           <MagneticCTA href="#projects" variant="primary">
             Ver Projetos
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -276,14 +283,14 @@ export default function AetherFlowHero() {
         </motion.div>
 
         {/* Stats */}
-        <motion.div variants={fadeUp} className="mt-10 flex items-center justify-center gap-12 text-center">
+        <motion.div variants={fadeUp} className="mt-10 flex items-center justify-center gap-6 sm:gap-12 text-center">
           {[
             { v: "15+", l: "Projetos" },
             { v: "3+", l: "Anos" },
             { v: "100%", l: "Satisfação" },
           ].map((s) => (
             <div key={s.l} className="flex flex-col gap-0.5">
-              <span className="text-3xl font-black gradient-purple">{s.v}</span>
+              <span className="text-2xl sm:text-3xl font-black gradient-purple">{s.v}</span>
               <span className="text-xs text-zinc-600 tracking-widest uppercase">{s.l}</span>
             </div>
           ))}
