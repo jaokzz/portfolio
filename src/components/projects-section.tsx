@@ -6,7 +6,7 @@ import { Clock } from "lucide-react";
 
 export default function ProjectsSection() {
   return (
-    <section id="projects" className="relative overflow-hidden">
+    <section id="projects" className="relative overflow-x-hidden">
       <LampContainer>
         <motion.div
           initial={{ opacity: 0, y: 60 }}

@@ -22,8 +22,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={inter.variable}>
-      <body className="bg-[#07070f] text-white overflow-x-hidden">
+    <html lang="pt-BR" className={`${inter.variable} overflow-x-hidden`}>
+      <body className="bg-[#07070f] text-white overflow-x-hidden max-w-[100vw]">
         <div className="noise-overlay" aria-hidden="true" />
         {children}
       </body>
