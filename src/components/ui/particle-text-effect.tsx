@@ -85,13 +85,32 @@ class Particle {
   }
 }
 
-export default function HeroParticleText() {
+// Mobile fallback — static gradient text, zero JS animation cost
+function StaticName() {
+  return (
+    <h1
+      className="font-black tracking-tighter text-center select-none"
+      style={{
+        fontSize: "clamp(2.8rem, 12vw, 5.5rem)",
+        background: "linear-gradient(135deg, #e9d5ff 0%, #c084fc 50%, #a855f7 100%)",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        backgroundClip: "text",
+        lineHeight: 1.05,
+      }}
+    >
+      João Vitor
+    </h1>
+  )
+}
+
+function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stateRef = useRef({
     particles: [] as Particle[],
     frame: 0,
     wordIndex: 0,
-    done: false,   // true once JOÃO VITOR is showing and settled
+    done: false,
     raf: 0,
   })
 
@@ -223,4 +242,9 @@ export default function HeroParticleText() {
       aria-label="João Vitor"
     />
   )
+}
+
+export default function HeroParticleText() {
+  const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches
+  return isMobile ? <StaticName /> : <ParticleCanvas />
 }

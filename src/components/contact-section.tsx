@@ -3,7 +3,11 @@
 import { useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { Mail, MessageSquare, MapPin, AtSign, GitFork } from "lucide-react";
-import AnimatedShaderBackground from "@/components/ui/animated-shader-background";
+import dynamic from "next/dynamic";
+const AnimatedShaderBackground = dynamic(
+  () => import("@/components/ui/animated-shader-background"),
+  { ssr: false, loading: () => null }
+);
 import { SlideButton } from "@/components/ui/slide-button";
 
 function GlowInput({ label, type = "text", value, onChange, placeholder, rows, isInvalid }: {
