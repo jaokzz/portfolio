@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -26,6 +28,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-[#07070f] text-white overflow-x-hidden max-w-[100vw]">
         <div className="noise-overlay" aria-hidden="true" />
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
